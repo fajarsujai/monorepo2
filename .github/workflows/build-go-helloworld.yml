@@ -11,6 +11,8 @@ on:
 
 env:
   IMAGE_NAME: fajarsujai/go-helloworld
+  # webserver's public IP, exposed via the nginx stream proxy (iac/ansible/playbooks/install_ingress_proxy.yml) in front of Traefik
+  WEBSERVER_PUBLIC_IP: 47.131.191.111
 
 jobs:
   build-and-push:
@@ -74,4 +76,6 @@ jobs:
             --set image.repository=${{ env.IMAGE_NAME }} \
             --set image.tag=${{ needs.build-and-push.outputs.image_tag }} \
             --set-string secretEnv.JWT_SECRET="${{ secrets.GO_HELLOWORLD_JWT_SECRET }}" \
+            --set ingress.enabled=true \
+            --set ingress.hosts[0].host=go-helloworld-${{ needs.build-and-push.outputs.namespace }}.${{ env.WEBSERVER_PUBLIC_IP }}.nip.io \
             --wait --atomic --timeout 5m
