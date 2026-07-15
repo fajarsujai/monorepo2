@@ -1,0 +1,35 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/compose-spec/compose-spec/master/schema/compose-spec.json
+
+services:
+  go-helloworld:
+    build:
+      context: ../..
+      dockerfile: apps/go-helloworld/Dockerfile
+    hostname: go-helloworld
+    restart: unless-stopped
+    ports: ['8000:8000']
+    environment:
+      SERVICE_NAME: go-helloworld
+      APP_ENVIRONMENT: local
+      APP_HOST: 0.0.0.0
+      APP_PORT: 8000
+      CORS_ALLOW_ORIGINS: http://localhost:3000
+      LOG_LEVEL: DEBUG
+      ENABLE_INSTRUMENTATION: 'false'
+      JWT_SECRET: supersecret
+      JWT_TOKEN_EXPIRY_MINUTES: 1440
+      ENABLE_SWAGGER: 'true'
+    networks: ['monorepo2_network']
+
+  react-helloworld:
+    build:
+      context: ../..
+      dockerfile: apps/react-helloworld/Dockerfile
+      args:
+        VITE_API_URL: http://localhost:8000
+    hostname: react-helloworld
+    restart: unless-stopped
+    ports: ['3000:3000']
+    networks: ['monorepo2_network']
+    depends_on:
+      - go-helloworld
