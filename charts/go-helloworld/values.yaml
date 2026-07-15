@@ -1,0 +1,101 @@
+replicaCount: 1
+
+image:
+  repository: fajarsujai/go-helloworld
+  pullPolicy: IfNotPresent
+  # Overridden at deploy time with --set image.tag=<git-sha>
+  tag: "latest"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+podLabels: {}
+
+podSecurityContext:
+  runAsNonRoot: true
+  fsGroup: 65532
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: false
+  runAsUser: 65532
+  capabilities:
+    drop: ["ALL"]
+
+service:
+  type: ClusterIP
+  port: 8000
+
+ingress:
+  enabled: false
+  className: "traefik"
+  annotations: {}
+  hosts:
+    - host: go-helloworld.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 250m
+    memory: 128Mi
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 80
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+livenessProbe:
+  httpGet:
+    path: /
+    port: http
+  initialDelaySeconds: 5
+  periodSeconds: 10
+
+readinessProbe:
+  httpGet:
+    path: /
+    port: http
+  initialDelaySeconds: 5
+  periodSeconds: 10
+
+# Non-sensitive configuration, rendered into a ConfigMap and loaded via envFrom.
+env:
+  SERVICE_NAME: go-helloworld
+  APP_ENVIRONMENT: production
+  # Must be 0.0.0.0 so the app is reachable from the Kubernetes Service/pod network.
+  APP_HOST: "0.0.0.0"
+  APP_PORT: "8000"
+  CORS_ALLOW_ORIGINS: "*"
+  LOG_LEVEL: INFO
+  ENABLE_INSTRUMENTATION: "false"
+  OTEL_EXPORTER_OTLP_ENDPOINT: ""
+  TRACING_SAMPLE_RATE: "0.1"
+  JWT_TOKEN_EXPIRY_MINUTES: "1440"
+  ENABLE_SWAGGER: "false"
+
+# Sensitive configuration, rendered into a Secret and loaded via envFrom.
+# Leave values empty and set them with `--set secretEnv.KEY=value` or
+# `--set-string` at deploy time instead of committing real secrets here.
+secretEnv:
+  JWT_SECRET: ""
+
+# Set to the name of a pre-existing Secret to use instead of secretEnv above.
+existingSecret: ""

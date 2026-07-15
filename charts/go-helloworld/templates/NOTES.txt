@@ -1,0 +1,8 @@
+go-helloworld has been deployed.
+
+Check status with:
+  kubectl get pods -l app.kubernetes.io/instance={{ .Release.Name }}
+
+Port-forward to test locally:
+  kubectl port-forward svc/{{ include "go-helloworld.fullname" . }} 8000:{{ .Values.service.port }}
+  curl http://localhost:8000/
