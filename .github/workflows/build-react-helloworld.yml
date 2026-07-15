@@ -11,6 +11,8 @@ on:
 
 env:
   IMAGE_NAME: fajarsujai/react-helloworld
+  # webserver's public IP, exposed via the nginx stream proxy (iac/ansible/playbooks/install_ingress_proxy.yml) in front of Traefik
+  WEBSERVER_PUBLIC_IP: 47.131.191.111
 
 jobs:
   build-and-push:
@@ -19,6 +21,7 @@ jobs:
       image_tag: ${{ steps.vars.outputs.image_tag }}
       floating_tag: ${{ steps.vars.outputs.floating_tag }}
       namespace: ${{ steps.vars.outputs.namespace }}
+      api_url: ${{ steps.vars.outputs.api_url }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -35,6 +38,7 @@ jobs:
             echo "namespace=$namespace"
             echo "floating_tag=$floating_tag"
             echo "image_tag=$(git rev-parse --short HEAD)"
+            echo "api_url=http://go-helloworld-${namespace}.${{ env.WEBSERVER_PUBLIC_IP }}.nip.io"
           } >> "$GITHUB_OUTPUT"
 
       - name: Set up Docker Buildx
@@ -56,7 +60,7 @@ jobs:
             ${{ env.IMAGE_NAME }}:${{ steps.vars.outputs.floating_tag }}
             ${{ env.IMAGE_NAME }}:${{ steps.vars.outputs.image_tag }}
           build-args: |
-            VITE_API_URL=${{ vars.VITE_API_URL }}
+            VITE_API_URL=${{ steps.vars.outputs.api_url }}
             VITE_BASE_URL=${{ vars.VITE_BASE_URL }}
           cache-from: type=gha,scope=react-helloworld
           cache-to: type=gha,mode=max,scope=react-helloworld
@@ -75,4 +79,8 @@ jobs:
             --namespace ${{ needs.build-and-push.outputs.namespace }} --create-namespace \
             --set image.repository=${{ env.IMAGE_NAME }} \
             --set image.tag=${{ needs.build-and-push.outputs.image_tag }} \
+            --set ingress.enabled=true \
+            --set ingress.hosts[0].host=react-helloworld-${{ needs.build-and-push.outputs.namespace }}.${{ env.WEBSERVER_PUBLIC_IP }}.nip.io \
+            --set ingress.hosts[0].paths[0].path=/ \
+            --set ingress.hosts[0].paths[0].pathType=Prefix \
             --wait --atomic --timeout 5m
